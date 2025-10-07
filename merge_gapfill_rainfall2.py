@@ -23,6 +23,10 @@ rain_2014_2020 = (
     .rename(columns={"Rainfall (mm)": "Total_Rainfall_mm"})
 )
 
+# --- NEW: Normalize state names in rain_2014_2020 before merging ---
+rain_2014_2020["State"] = rain_2014_2020["State"].replace({"NSembilan": "Negeri Sembilan"})
+
+
 # --- Step 2: Clean 2000–2021 dataset ---
 if "Total Rainfall in millimetres" in rain_2000_2021.columns:
     rain_2000_2021.rename(
@@ -47,15 +51,19 @@ def fill_kl_putrajaya(df):
     pj = selangor.copy(); pj["State"] = "Wilayah Persekutuan Putrajaya"
     return pd.concat([df, kl, pj], ignore_index=True)
 
-rain_2000_2021 = fill_kl_putrajaya(rain_2000_2021)
+rain_2000_2021 = fill_kl_putrajaya(rain_2000_2021) # Apply to the 2000-2021 data, which should be the base for these fills.
 
 # --- Step 4: Merge datasets ---
+# This is where the already normalized 2000-2021 data (including KL/PJ)
+# and the now normalized 2014-2020 data are combined.
 combined = pd.concat([rain_2000_2021, rain_2014_2020], ignore_index=True)
 
-# --- Step 5: Remove duplicates ---
+
+# --- Step 5: Remove duplicates (re-aggregate by mean) ---
+# This step handles any duplicate State-Year entries gracefully
 combined = (
     combined.groupby(["State", "Year"], as_index=False)["Total_Rainfall_mm"]
-    .mean(numeric_only=True)
+    .mean(numeric_only=True) # Using mean as per your script's logic
 )
 
 # --- Step 6: Interpolate only missing years, not full reindex ---
@@ -80,5 +88,5 @@ if "Average_Annual_Rainfall_per_sqkm" in avg_rainfall.columns:
 combined = combined.sort_values(["State", "Year"])
 combined.to_csv("malaysia_rainfall_gapfilled_clean.csv", index=False)
 
-print("✅ Merge complete. No excessive year expansion.")
+print("✅ Merge complete. All state names should be normalized.")
 print(f"✅ Rows: {len(combined)} | States: {combined['State'].nunique()}")

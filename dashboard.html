@@ -6,13 +6,10 @@
   <script src="https://cdn.jsdelivr.net/npm/vega@5.22.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.2.0"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.20.8"></script>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    .container { display: flex; flex-direction: column; align-items: center; gap: 20px; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h2>Malaysia Average Annual Rainfall (2000–2021)</h2>
+  <h2>Average Annual Rainfall Density in Malaysia (2000-2021)</h2>
   <div class="container">
     <div id="map"></div>
     <div id="chart"></div>
@@ -22,54 +19,140 @@
     // === Choropleth Map ===
     const mapSpec = {
       "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-      "width": 600,
-      "height": 700,
+      "width": 1000,
+      "height": 500,
+      "title": {
+        "text": ["Rainfall measured in millimeters per square kilometer (mm/km²), averaged across 2014–2020 period.",
+          "Data normalized by state area using logarithmic scaling. Source: Public Sector Open Data Portal (DTSA)."],
+        "titleFont": "Arial",
+        "fontSize": 12,
+        "fontWeight": "normal",
+        "anchor": "start"
+      },
       "projection": {
         "type": "conicConformal",
         "center": [109.5, 4],
         "parallels": [1, 7],
         "scale": 2800,
-        "translate": [300, 350]
+        "translate": [500, 250]
       },
       "layer": [
-        { "data": {"graticule": {"step": [20, 20]}},
-          "mark": {"type": "geoshape", "fill": "#f8f8f8", "stroke": "#e0e0e0"} },
         {
+          // Ocean/water background
+          "data": {"graticule": {"step": [10, 10]}},
+          "mark": {
+            "type": "geoshape", 
+            "fill": "#f8f8f8",  
+            "stroke": "#e0e0e0",
+            "strokeWidth": 0.5
+          }
+        },
+        {
+          // Graticule lines (longitude/latitude grid)
+          "data": {"graticule": true},
+          "mark": {
+            "type": "geoshape", 
+            "fill": null, 
+            // "stroke": "#b3d9ff", 
+            "stroke": "#d4ccc0",
+            "strokeWidth": 0.8,
+            "strokeDash": [2, 2]
+          }
+        },
+        {
+          // Base Malaysia states (for states without data)
           "data": {
             "url": "malaysia_state.json",
             "format": {"type": "topojson", "feature": "malaysia_state"}
           },
-          "transform": [{
-            "lookup": "properties.NAME_1",
-            "from": {
-              "data": {"url": "malaysia_rainfall_merged_gapfilled.csv"},
-              "key": "State",
-              "fields": ["Average_Annual_Rainfall_per_sqkm"]
+          "mark": {
+            "type": "geoshape", 
+            "fill": "#e8e0f0",
+            "stroke": "white",
+            "strokeWidth": 1.5
+          },
+          "encoding": {
+            "tooltip": [
+              {"field": "properties.NAME_1", "type": "nominal", "title": "State/Territory"},
+              {"value": "No data available", "title": "Rainfall Data"}
+            ]
+          }
+        },
+        {
+          // Choropleth rainfall density 
+          "data": {
+            "url": "malaysia_state.json",
+            "format": {"type": "topojson", "feature": "malaysia_state"}
+          },
+          "transform": [
+            {
+              "lookup": "properties.NAME_1",
+              "from": {
+                "data": {"url": "malaysia_avg_annual_rainfall_final_normalized.csv"},
+                "key": "State",
+                "fields": ["Average_Annual_Rainfall_per_sqkm"]
+              }
             }
-          }],
-          "mark": {"type": "geoshape", "stroke": "white", "strokeWidth": 1},
+          ],
+          "mark": {
+            "type": "geoshape", 
+            "stroke": "white",
+            "strokeWidth": 1.0
+          },
           "encoding": {
             "color": {
               "field": "Average_Annual_Rainfall_per_sqkm",
               "type": "quantitative",
-              "scale": {"type": "log", "scheme": "blues"},
-              "legend": {"title": "Avg Rainfall (mm/km²)", "orient": "right"}
+              "title": ["Average Annual Rainfall", "Density (mm/km²)"],
+              "scale": {
+                "type": "log",
+                "scheme": "blues",
+              },
+              "legend": {
+                "titleLimit": 200,
+                "format": ".2f",
+                "gradientLength": 200,
+                "gradientThickness": 16,
+                "titleFontSize": 12,
+                "labelFontSize": 11,
+                "orient": "bottom-right"
+                // "orient": "top-right"
+              }
             },
             "tooltip": [
-              {"field": "properties.NAME_1", "title": "State"},
-              {"field": "Average_Annual_Rainfall_per_sqkm", "format": ".2f", "title": "Rainfall Density"}
+              {"field": "properties.NAME_1", "type": "nominal", "title": "State/Territory"},
+              {
+                "field": "Average_Annual_Rainfall_per_sqkm",
+                "type": "quantitative",
+                "title": "Rainfall Density (mm/km²)",
+                "format": ".2f"
+              }
             ]
           }
         }
-      ]
+      ],
+      "config": {
+        "axis": {"grid": false, "domain": false},
+        "view": {"stroke": null},
+        "legend": {
+          "titleColor": "#333",
+          "labelColor": "#555"
+        }
+      }
     };
 
     // === Line Chart with Filters ===
     const chartSpec = {
       "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-      "width": 500,
-      "height": 400,
+      "width": 600,
+      "height": 300,
       "data": {"url": "malaysia_rainfall_gapfilled_clean.csv"},
+      "title": {
+        "text": "Total Annual Rainfall in Malaysia by State (2000-2021)",
+        "anchor": "start",
+        "align": "left",
+        "fontSize": 20
+      },
       "params": [
         {
           "name": "state_selection",
@@ -123,12 +206,23 @@
         "x": {
           "field": "Year", 
           "type": "ordinal",
-          "axis": {"labelAngle": -45}
+          "axis": {
+            "labelAngle": -45,
+            "titleFontSize": 12
+        }
         },
         "y": {
           "field": "Total_Rainfall_mm", 
           "type": "quantitative", 
-          "title": "Total Annual Rainfall (mm)"
+          "title": "Total Annual Rainfall (mm)",
+          "scale": {"domain": [0, 5500]},
+          "axis": {
+                "labelFontSize": 10,
+                "labelFontWeight": "lighter",  // ✅ works here
+                "titleFont": "Arial",
+                "titleFontSize": 12,
+                // "titleFontWeight": "bold"
+              }
         },
         "color": {
           "field": "State", 
