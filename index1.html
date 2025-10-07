@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Average Annual Rainfall Density (mm/km²) in Malaysia (2014-2020) - Dropdown Filter</title>
+  <script src="https://cdn.jsdelivr.net/npm/vega@5.22.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.2.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.20.8"></script>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Basic styling for the dropdown for better visibility */
+    #state-filter-container {
+      margin-bottom: 15px;
+      font-family: Arial, sans-serif;
+    }
+    #state-filter-container label {
+      margin-right: 10px;
+      font-weight: bold;
+      color: #333;
+    }
+    #state-filter {
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      min-width: 200px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Average Annual Rainfall Density in Malaysia (2014-2020)</h1>
+
+  <div id="state-filter-container">
+    <label for="state-filter">Select State/Territory:</label>
+    <select id="state-filter"></select>
+  </div>
+
+  <div id="map-container-dropdown"></div>
+
+  <script type="text/javascript">
+    const specDropdown = {
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "width": 1100,
+      "height": 700,
+      "title": {
+        "text": ["Rainfall measured in millimeters per square kilometer (mm/km²), averaged across 2014–2020 period.",
+          "Data normalized by state area using logarithmic scaling. Source: Public Sector Open Data Portal (DTSA)."],
+        "titleFont": "Arial",
+        "fontSize": 12,
+        "fontWeight": "normal",
+        "anchor": "start"
+      },
+      "projection": {
+        "type": "conicConformal",
+        "center": [109.5, 4],
+        "parallels": [1, 7],
+        "scale": 2800,
+        "translate": [550, 350]
+      },
+      // === Start of Dropdown Filter Changes ===
+      "params": [
+        {
+          "name": "selectedState",
+          "select": {"type": "point", "fields": ["properties.NAME_1"]},
+          // Bind the selection to an external HTML dropdown element
+          "bind": {
+            "input": "select",
+            // This array should match the exact 'NAME_1' values in your topojson
+            "options": [
+              null, // Option for "All States" (no filter)
+              "Johor", "Kedah", "Kelantan", "Melaka", "Negeri Sembilan",
+              "Pahang", "Perak", "Perlis", "Pulau Pinang", "Sabah",
+              "Sarawak", "Selangor", "Terengganu", "Wilayah Persekutuan Kuala Lumpur",
+              "Wilayah Persekutuan Labuan", "Wilayah Persekutuan Putrajaya"
+            ],
+            "name": "Filter by State: "
+          }
+        }
+      ],
+      // === End of Dropdown Filter Changes ===
+      "layer": [
+        {
+          // Ocean/water background
+          "data": {"graticule": {"step": [10, 10]}},
+          "mark": {
+            "type": "geoshape", 
+            "fill": "#f8f8f8",  
+            "stroke": "#e0e0e0",
+            "strokeWidth": 0.5
+          }
+        },
+        {
+          // Graticule lines (longitude/latitude grid)
+          "data": {"graticule": true},
+          "mark": {
+            "type": "geoshape", 
+            "fill": null, 
+            "stroke": "#d4ccc0",
+            "strokeWidth": 0.8,
+            "strokeDash": [2, 2]
+          }
+        },
+        {
+          // Base Malaysia states (for states without data)
+          "data": {
+            "url": "malaysia_state.json",
+            "format": {"type": "topojson", "feature": "malaysia_state"}
+          },
+          "mark": {
+            "type": "geoshape", 
+            "fill": "#e8e0f0",
+            "stroke": "white",
+            "strokeWidth": 1.5
+          },
+          "encoding": {
+            "tooltip": [
+              {"field": "properties.NAME_1", "type": "nominal", "title": "State/Territory"},
+              {"value": "No data available", "title": "Rainfall Data"}
+            ]
+          }
+        },
+        {
+          // Choropleth rainfall density 
+          "data": {
+            "url": "malaysia_state.json",
+            "format": {"type": "topojson", "feature": "malaysia_state"}
+          },
+          "transform": [
+            {
+              "lookup": "properties.NAME_1",
+              "from": {
+                "data": {"url": "malaysia_avg_annual_rainfall_final_normalized.csv"},
+                "key": "State",
+                "fields": ["Average_Annual_Rainfall_per_sqkm"]
+              }
+            },
+            // === Start of Dropdown Filter Application ===
+            // Filter the choropleth layer based on the selected state.
+            // If selectedState is null (i.e., "All States" is chosen), no filter is applied.
+            {"filter": "selectedState.properties_NAME_1 == null || datum.properties.NAME_1 === selectedState.properties_NAME_1"}
+            // === End of Dropdown Filter Application ===
+          ],
+          "mark": {
+            "type": "geoshape", 
+            "stroke": "white",
+            "strokeWidth": 1.0
+          },
+          "encoding": {
+            "color": {
+              "field": "Average_Annual_Rainfall_per_sqkm",
+              "type": "quantitative",
+              "title": ["Average Annual Rainfall", "Density (mm/km²)"],
+              "scale": {
+                "type": "log",
+                "scheme": "blues",
+              },
+              "legend": {
+                "titleLimit": 200,
+                "format": ".2f",
+                "gradientLength": 200,
+                "gradientThickness": 16,
+                "titleFontSize": 12,
+                "labelFontSize": 11,
+                "orient": "bottom-right"
+              }
+            },
+            "tooltip": [
+              {"field": "properties.NAME_1", "type": "nominal", "title": "State/Territory"},
+              {
+                "field": "Average_Annual_Rainfall_per_sqkm",
+                "type": "quantitative",
+                "title": "Rainfall Density (mm/km²)",
+                "format": ".2f"
+              }
+            ]
+          }
+        }
+      ],
+      "config": {
+        "axis": {"grid": false, "domain": false},
+        "view": {"stroke": null},
+        "legend": {
+          "titleColor": "#333",
+          "labelColor": "#555"
+        }
+      }
+    };
+
+    vegaEmbed("#map-container-dropdown", specDropdown, {
+      "actions": false,
+      "renderer": "svg",
+      "bind": { // This ensures the dropdown created by Vega-Lite is placed in the designated HTML element
+        "input": "#state-filter"
+      }
+    }).catch(console.error);
+  </script>
+</body>
+</html>
