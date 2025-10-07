@@ -11,6 +11,8 @@
     #state-filter-container {
       margin-bottom: 15px;
       font-family: Arial, sans-serif;
+      text-align: left; /* Align filter to the left */
+      padding-left: 50px; /* Add some padding to match map title alignment */
     }
     #state-filter-container label {
       margin-right: 10px;
@@ -22,7 +24,17 @@
       border: 1px solid #ccc;
       border-radius: 4px;
       font-size: 14px;
-      min-width: 200px;
+      min-width: 250px; /* Increased width for "All States" */
+    }
+    body {
+      margin: 0; /* Remove default body margin */
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+    h1 {
+      text-align: center; /* Center the main title */
+      padding-top: 20px;
+      margin-bottom: 20px;
     }
   </style>
 </head>
@@ -31,7 +43,27 @@
 
   <div id="state-filter-container">
     <label for="state-filter">Select State/Territory:</label>
-    <select id="state-filter"></select>
+    <!-- Explicitly define all options in HTML for external binding -->
+    <!-- Values correspond directly to your CSV's "State" column or "All States" -->
+    <select id="state-filter">
+      <option value="All States">All States</option>
+      <option value="Johor">Johor</option>
+      <option value="Kedah">Kedah</option>
+      <option value="Kelantan">Kelantan</option>
+      <option value="Labuan">Labuan</option>
+      <option value="Melaka">Melaka</option>
+      <option value="Negeri Sembilan">Negeri Sembilan</option>
+      <option value="Pahang">Pahang</option>
+      <option value="Perak">Perak</option>
+      <option value="Perlis">Perlis</option>
+      <option value="Pulau Pinang">Pulau Pinang</option>
+      <option value="Sabah">Sabah</option>
+      <option value="Sarawak">Sarawak</option>
+      <option value="Selangor">Selangor</option>
+      <option value="Terengganu">Terengganu</option>
+      <option value="Kuala Lumpur">Kuala Lumpur</option>
+      <option value="Putrajaya">Putrajaya</option>
+    </select>
   </div>
 
   <div id="map-container-dropdown"></div>
@@ -56,31 +88,17 @@
         "scale": 2800,
         "translate": [550, 350]
       },
-      // === Start of Dropdown Filter Changes ===
       "params": [
         {
           "name": "selectedState",
-          "select": {"type": "point", "fields": ["properties.NAME_1"]},
-          // Bind the selection to an external HTML dropdown element
-          "bind": {
-            "input": "select",
-            // This array should match the exact 'NAME_1' values in your topojson
-            "options": [
-              null, // Option for "All States" (no filter)
-              "Johor", "Kedah", "Kelantan", "Melaka", "Negeri Sembilan",
-              "Pahang", "Perak", "Perlis", "Pulau Pinang", "Sabah",
-              "Sarawak", "Selangor", "Terengganu", "Wilayah Persekutuan Kuala Lumpur",
-              "Wilayah Persekutuan Labuan", "Wilayah Persekutuan Putrajaya"
-            ],
-            "name": "Filter by State: "
-          }
+          "value": "All States" // Initial value for the parameter, matches HTML option
+          // No 'select' object here, as it's a simple scalar parameter bound externally
         }
       ],
-      // === End of Dropdown Filter Changes ===
       "layer": [
         {
-          // Ocean/water background
-          "data": {"graticule": {"step": [10, 10]}},
+          // Ocean/water background - GRATICULE STEP MODIFIED
+          "data": {"graticule": {"step": [20, 20]}}, 
           "mark": {
             "type": "geoshape", 
             "fill": "#f8f8f8",  
@@ -89,8 +107,8 @@
           }
         },
         {
-          // Graticule lines (longitude/latitude grid)
-          "data": {"graticule": true},
+          // Graticule lines (longitude/latitude grid) - GRATICULE STEP MODIFIED
+          "data": {"graticule": {"step": [20, 20]}}, 
           "mark": {
             "type": "geoshape", 
             "fill": null, 
@@ -100,7 +118,7 @@
           }
         },
         {
-          // Base Malaysia states (for states without data)
+          // Base Malaysia states (for states without data) - Tooltip simplified
           "data": {
             "url": "malaysia_state.json",
             "format": {"type": "topojson", "feature": "malaysia_state"}
@@ -112,9 +130,8 @@
             "strokeWidth": 1.5
           },
           "encoding": {
-            "tooltip": [
-              {"field": "properties.NAME_1", "type": "nominal", "title": "State/Territory"},
-              {"value": "No data available", "title": "Rainfall Data"}
+            "tooltip": [ // Only show state name, as choropleth layer handles data tooltip
+              {"field": "properties.NAME_1", "type": "nominal", "title": "State/Territory"}
             ]
           }
         },
@@ -133,11 +150,14 @@
                 "fields": ["Average_Annual_Rainfall_per_sqkm"]
               }
             },
-            // === Start of Dropdown Filter Application ===
-            // Filter the choropleth layer based on the selected state.
-            // If selectedState is null (i.e., "All States" is chosen), no filter is applied.
-            {"filter": "selectedState.properties_NAME_1 == null || datum.properties.NAME_1 === selectedState.properties_NAME_1"}
-            // === End of Dropdown Filter Application ===
+            // Transform to handle 'null' data values for display in tooltip
+            // This ensures "No Data Available" is shown instead of literal null
+            {
+              "calculate": "datum.Average_Annual_Rainfall_per_sqkm == null ? 'No Data Available' : format(datum.Average_Annual_Rainfall_per_sqkm, '.2f')",
+              "as": "Formatted_Rainfall_Density"
+            },
+            // Filter: selectedState is now the string value from the HTML select
+            {"filter": "selectedState === 'All States' || datum.properties.NAME_1 === selectedState"}
           ],
           "mark": {
             "type": "geoshape", 
@@ -166,14 +186,62 @@
             "tooltip": [
               {"field": "properties.NAME_1", "type": "nominal", "title": "State/Territory"},
               {
-                "field": "Average_Annual_Rainfall_per_sqkm",
-                "type": "quantitative",
-                "title": "Rainfall Density (mm/km²)",
-                "format": ".2f"
+                "field": "Formatted_Rainfall_Density", // Use the new calculated field
+                "type": "nominal", // Type is nominal because it can be a string ("No Data Available")
+                "title": "Rainfall Density (mm/km²)"
               }
             ]
           }
+        },
+        // --- Start of Text Annotation (Example) ---
+        {
+          // This layer will only show annotations if the state is selected
+          "transform": [
+            {
+              "filter": "selectedState === 'All States' || datum.properties.NAME_1 === selectedState"
+            }
+          ],
+          "data": {
+            "values": [
+              {
+                "state": "Sarawak",
+                "lon": 113.8, // Approximate centroid of Sarawak
+                "lat": 2.5,
+                "text": "East Malaysia"
+              },
+              {
+                "state": "Pahang",
+                "lon": 102.5, // Approximate centroid of Pahang
+                "lat": 3.7,
+                "text": "Highest Rainfall"
+              }
+            ]
+          },
+          "mark": {
+            "type": "text",
+            "align": "center",
+            "baseline": "middle",
+            "dx": 0,
+            "dy": 0,
+            "color": "black",
+            "fontSize": 12,
+            "fontWeight": "bold",
+            "stroke": "white",
+            "strokeWidth": 1.5,
+            "opacity": 0.8
+          },
+          "encoding": {
+            "longitude": {"field": "lon", "type": "quantitative"},
+            "latitude": {"field": "lat", "type": "quantitative"},
+            "text": {"field": "text", "type": "nominal"}
+            // You could make annotations dynamic, e.g., only show for the selected state
+            // "opacity": {
+            //   "condition": {"test": "datum.state === selectedState || selectedState === 'All States'", "value": 1},
+            //   "value": 0
+            // }
+          }
         }
+        // --- End of Text Annotation ---
       ],
       "config": {
         "axis": {"grid": false, "domain": false},
@@ -188,9 +256,8 @@
     vegaEmbed("#map-container-dropdown", specDropdown, {
       "actions": false,
       "renderer": "svg",
-      "bind": { // This ensures the dropdown created by Vega-Lite is placed in the designated HTML element
-        "input": "#state-filter"
-      }
+      // Correct way to bind to an existing HTML select element for a scalar parameter
+      "bind": { "selectedState": "#state-filter" }
     }).catch(console.error);
   </script>
 </body>

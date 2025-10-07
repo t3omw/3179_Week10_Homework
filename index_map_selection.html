@@ -6,6 +6,23 @@
   <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.2.0"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.20.8"></script>
   <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      margin: 0; 
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+    h1 {
+      text-align: center; 
+      padding-top: 20px;
+      margin-bottom: 5px; 
+    }
+    p {
+      text-align: center; 
+      margin-bottom: 20px;
+      color: #555;
+    }
+  </style>
 </head>
 <body>
   <h1>Average Annual Rainfall Density in Malaysia (2014-2020)</h1>
@@ -32,18 +49,11 @@
         "scale": 2800,
         "translate": [550, 350]
       },
-      // === Start of Map Selection Changes ===
-      "params": [
-        {
-          "name": "stateSelection",
-          "select": {"type": "point", "fields": ["properties.NAME_1"]} // Multi-select by default with Shift-click
-        }
-      ],
-      // === End of Map Selection Changes ===
+      // --- REMOVED top-level 'params' here ---
       "layer": [
         {
-          // Ocean/water background
-          "data": {"graticule": {"step": [10, 10]}},
+          // Ocean/water background - GRATICULE STEP MODIFIED
+          "data": {"graticule": {"step": [20, 20]}}, 
           "mark": {
             "type": "geoshape", 
             "fill": "#f8f8f8",  
@@ -52,8 +62,8 @@
           }
         },
         {
-          // Graticule lines (longitude/latitude grid)
-          "data": {"graticule": true},
+          // Graticule lines (longitude/latitude grid) - GRATICULE STEP MODIFIED
+          "data": {"graticule": {"step": [20, 20]}}, 
           "mark": {
             "type": "geoshape", 
             "fill": null, 
@@ -63,7 +73,7 @@
           }
         },
         {
-          // Base Malaysia states (for states without data)
+          // Base Malaysia states (for states without data) - Tooltip simplified
           "data": {
             "url": "malaysia_state.json",
             "format": {"type": "topojson", "feature": "malaysia_state"}
@@ -75,14 +85,20 @@
             "strokeWidth": 1.5
           },
           "encoding": {
-            "tooltip": [
-              {"field": "properties.NAME_1", "type": "nominal", "title": "State/Territory"},
-              {"value": "No data available", "title": "Rainfall Data"}
+            "tooltip": [ // Only show state name, as choropleth layer handles data tooltip
+              {"field": "properties.NAME_1", "type": "nominal", "title": "State/Territory"}
             ]
           }
         },
         {
           // Choropleth rainfall density 
+          // --- MOVED 'params' (selection) into this layer ---
+          "params": [
+            {
+              "name": "stateSelection",
+              "select": {"type": "point", "fields": ["properties.NAME_1"]} 
+            }
+          ],
           "data": {
             "url": "malaysia_state.json",
             "format": {"type": "topojson", "feature": "malaysia_state"}
@@ -95,20 +111,24 @@
                 "key": "State",
                 "fields": ["Average_Annual_Rainfall_per_sqkm"]
               }
+            },
+            // Transform to handle 'null' data values for display in tooltip
+            // This ensures "No Data Available" is shown instead of literal null
+            {
+              "calculate": "datum.Average_Annual_Rainfall_per_sqkm == null ? 'No Data Available' : format(datum.Average_Annual_Rainfall_per_sqkm, '.2f')",
+              "as": "Formatted_Rainfall_Density"
             }
           ],
           "mark": {
             "type": "geoshape", 
-            // === Start of Map Selection Application ===
             "stroke": {
-              "condition": {"param": "stateSelection", "value": "black"}, // Selected states get a black border
-              "value": "white" // Default white border
+              "condition": {"param": "stateSelection", "value": "black"}, 
+              "value": "white" 
             },
             "strokeWidth": {
-              "condition": {"param": "stateSelection", "value": 2.5}, // Thicker border for selected
+              "condition": {"param": "stateSelection", "value": 2.5}, 
               "value": 1.0
-            },
-            // === End of Map Selection Application ===
+            }
           },
           "encoding": {
             "color": {
@@ -129,23 +149,58 @@
                 "orient": "bottom-right"
               }
             },
-            // === Start of Map Selection Application (Opacity) ===
             "opacity": {
-              "condition": {"param": "stateSelection", "value": 1.0}, // Full opacity for selected
-              "value": 0.6 // Dim unselected states
+              "condition": {"param": "stateSelection", "value": 1.0}, 
+              "value": 0.6 
             },
-            // === End of Map Selection Application (Opacity) ===
             "tooltip": [
               {"field": "properties.NAME_1", "type": "nominal", "title": "State/Territory"},
               {
-                "field": "Average_Annual_Rainfall_per_sqkm",
-                "type": "quantitative",
-                "title": "Rainfall Density (mm/km²)",
-                "format": ".2f"
+                "field": "Formatted_Rainfall_Density", // Use the new calculated field
+                "type": "nominal", // Type is nominal because it can be a string ("No Data Available")
+                "title": "Rainfall Density (mm/km²)"
               }
             ]
           }
+        },
+        // --- Start of Text Annotation (Example) ---
+        {
+          "data": {
+            "values": [
+              {
+                "state": "Sarawak",
+                "lon": 113.8, // Approximate centroid of Sarawak
+                "lat": 2.5,
+                "text": "East Malaysia"
+              },
+              {
+                "state": "Pahang",
+                "lon": 102.5, // Approximate centroid of Pahang
+                "lat": 3.7,
+                "text": "Highest Rainfall"
+              }
+            ]
+          },
+          "mark": {
+            "type": "text",
+            "align": "center",
+            "baseline": "middle",
+            "dx": 0,
+            "dy": 0,
+            "color": "black",
+            "fontSize": 12,
+            "fontWeight": "bold",
+            "stroke": "white",
+            "strokeWidth": 1.5,
+            "opacity": 0.8
+          },
+          "encoding": {
+            "longitude": {"field": "lon", "type": "quantitative"},
+            "latitude": {"field": "lat", "type": "quantitative"},
+            "text": {"field": "text", "type": "nominal"}
+          }
         }
+        // --- End of Text Annotation ---
       ],
       "config": {
         "axis": {"grid": false, "domain": false},
