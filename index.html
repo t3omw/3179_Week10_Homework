@@ -1,56 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Malaysian Rainfall Visualizations - Week 10 Homework</title>
+  <meta charset="utf-8">
+  <title>Malaysia Rainfall Overview (2000–2021)</title>
   <script src="https://cdn.jsdelivr.net/npm/vega@5.22.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.2.0"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.20.8"></script>
   <link rel="stylesheet" href="style.css">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background-color: #f4f4f4;
-    }
-    .visualization-container {
-      background-color: white;
-      padding: 20px;
-      margin-bottom: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr; /* Two columns */
-      gap: 20px;
-    }
-    @media (max-width: 900px) {
-      .dashboard-grid {
-        grid-template-columns: 1fr; /* Stack columns on smaller screens */
-      }
-    }
-  </style>
 </head>
 <body>
-  <h1>Malaysian Rainfall Data: Interactive Visualizations</h1>
-
-  <div class="dashboard-grid">
-    <div class="visualization-container">
-      <h2>Week 9 Homework: Average Annual Rainfall Density Map (2014-2020)</h2>
-      <div id="map-container"></div>
-    </div>
-
-    <div class="visualization-container">
-      <h2>Week 10 Homework: Annual Total Rainfall Trends (2000-2021)</h2>
-      <div id="line-chart-container"></div>
-    </div>
+  <h2>Average Annual Rainfall Density in Malaysia (2014-2021)</h2>
+  <div class="container">
+    <div id="map"></div>
+    <div id="chart"></div>
   </div>
 
   <script type="text/javascript">
-    // Vega-Lite specification for the Week 9 Choropleth Map (from your index.html)
+    // === Choropleth Map ===
     const mapSpec = {
       "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-      "width": 500,
+      "width": 1000,
       "height": 500,
       "title": {
         "text": ["Rainfall measured in millimeters per square kilometer (mm/km²), averaged across 2014–2020 period.",
@@ -64,8 +33,8 @@
         "type": "conicConformal",
         "center": [109.5, 4],
         "parallels": [1, 7],
-        "scale": 1800,
-        "translate": [250, 250]
+        "scale": 2800,
+        "translate": [500, 250]
       },
       "layer": [
         {
@@ -84,6 +53,7 @@
           "mark": {
             "type": "geoshape", 
             "fill": null, 
+            // "stroke": "#b3d9ff", 
             "stroke": "#d4ccc0",
             "strokeWidth": 0.8,
             "strokeDash": [2, 2]
@@ -146,6 +116,7 @@
                 "titleFontSize": 12,
                 "labelFontSize": 11,
                 "orient": "bottom-right"
+                // "orient": "top-right"
               }
             },
             "tooltip": [
@@ -170,192 +141,104 @@
       }
     };
 
-    // Vega-Lite specification for the Task 1 Multi-Line Chart (new visualization)
-    const lineChartSpec = {
-        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-        "width": 500,
-        "height": 400,
-        "title": {
-            "text": "Annual Total Rainfall (2000-2021) in Malaysian States",
-            "fontSize": 14,
-            "fontWeight": "bold",
-            "anchor": "start"
-        },
-        "data": {
-            "url": "malaysia_rainfall_2000_2021.csv"
-        },
-        "transform": [
-            {
-            "filter": "isValid(datum['Total Rainfall in millimetres']) && datum['Total Rainfall in millimetres'] > 0"
-            },
-            {
-            "calculate": "datum.State == 'Wilayah Persekutuan Labuan' ? 'Labuan' : datum.State == 'NSembilan' ? 'Negeri Sembilan' : datum.State",
-            "as": "Normalized State"
-            },
-            {
-            "aggregate": [
-                {
-                "op": "sum",
-                "field": "Total Rainfall in millimetres",
-                "as": "Annual Total Rainfall"
-                }
+    // === Line Chart with Filters ===
+    const chartSpec = {
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "width": 600,
+      "height": 300,
+      "data": {"url": "malaysia_rainfall_gapfilled_clean.csv"},
+      "title": {
+        "text": "Total Annual Rainfall in Malaysia by State (2000-2021)",
+        "anchor": "start",
+        "align": "left",
+        "fontSize": 20
+      },
+      "params": [
+        {
+          "name": "state_selection",
+          "value": "All States",
+          "bind": {
+            "input": "select",
+            "options": [
+              "All States",
+              "Johor",
+              "Kedah",
+              "Kelantan",
+              "Melaka",
+              "Negeri Sembilan",
+              "Pahang",
+              "Perak",
+              "Perlis",
+              "Pulau Pinang",
+              "Sabah",
+              "Sarawak",
+              "Selangor",
+              "Terengganu",
+              "Wilayah Persekutuan Kuala Lumpur",
+              "Wilayah Persekutuan Labuan",
+              "Wilayah Persekutuan Putrajaya"
             ],
-            "groupby": ["Normalized State", "Year"]
-            },
-            {
-            "filter": "state_selection_value == 'All States' || datum['Normalized State'] == state_selection_value"
-            },
-            {
-            "filter": "datum.Year <= year_slider_value"
-            }
-        ],
-        "params": [
-            {
-            "name": "state_selection_value",
-            "value": "All States",
-            "bind": {
-                "input": "select",
-                "options": [
-                "All States",
-                "Johor",
-                "Kedah",
-                "Kelantan",
-                "Labuan",
-                "Melaka",
-                "Negeri Sembilan",
-                "Pahang",
-                "Perak",
-                "Perlis",
-                "Pulau Pinang",
-                "Sabah",
-                "Sarawak",
-                "Selangor",
-                "Terengganu"
-                ],
-                "labels": [
-                "Show All",
-                "Johor",
-                "Kedah",
-                "Kelantan",
-                "Labuan",
-                "Melaka",
-                "Negeri Sembilan",
-                "Pahang",
-                "Perak",
-                "Perlis",
-                "Pulau Pinang",
-                "Sabah",
-                "Sarawak",
-                "Selangor",
-                "Terengganu"
-                ],
-                "name": "Filter by State:"
-            }
-            },
-            {
-            "name": "year_slider_value",
-            "value": 2021,
-            "bind": {
-                "input": "range",
-                "min": 2000,
-                "max": 2021,
-                "step": 1,
-                "name": "Year Range:",
-                "format": ".0f"
-            }
-            }
-        ],
-        "encoding": {
-            "x": {
-            "field": "Year",
-            "type": "ordinal",
-            "title": "Year",
-            "axis": { "format": ".0f", "labelAngle": -45 }
-            },
-            "y": {
-            "field": "Annual Total Rainfall",
-            "type": "quantitative",
-            "title": "Annual Total Rainfall (mm)",
-            "scale": { "type": "log", "base": 10 },
-            "axis": { "format": ",.0f" }
-            },
-            "color": {
-            "field": "Normalized State",
-            "type": "nominal",
-            "legend": {
-                "title": "Malaysian State",
-                "orient": "right",
-                "offset": 10,
-                "labelLimit": 120,
-                "clipHeight": 100
-            }
-            },
-            "tooltip": [
-            { "field": "Normalized State", "type": "nominal", "title": "State/Territory" },
-            { "field": "Year", "type": "ordinal", "title": "Year" },
-            {
-                "field": "Annual Total Rainfall",
-                "type": "quantitative",
-                "title": "Annual Total Rainfall (mm)",
-                "format": ",.0f"
-            }
-            ]
+            "name": "Filter by State: "
+          }
         },
-        "layer": [
-            {
-            "mark": { "type": "line", "point": true }
-            },
-            {
-            "transform": [
-                { "filter": "datum.Year == year_slider_value" }
-            ],
-            "mark": {
-                "type": "text",
-                "align": "left",
-                "dx": 5,
-                "dy": -5,
-                "color": "black",
-                "fontSize": 10,
-                "fontWeight": "bold"
-            },
-            "encoding": {
-                "x": { "field": "Year", "type": "ordinal" },
-                "y": { "field": "Annual Total Rainfall", "type": "quantitative" },
-                "text": { "field": "Normalized State" },
-                "tooltip": [
-                { "field": "Normalized State", "type": "nominal", "title": "State/Territory" },
-                { "field": "Year", "type": "ordinal", "title": "Year" },
-                {
-                    "field": "Annual Total Rainfall",
-                    "type": "quantitative",
-                    "title": "Annual Total Rainfall (mm)",
-                    "format": ",.0f"
-                }
-                ]
-            }
-            }
-        ],
-        "config": {
-            "axis": { "grid": true },
-            "line": { "point": true },
-            "point": { "filled": true, "size": 60 }
+        {
+          "name": "year_max",
+          "value": 2021,
+          "bind": {
+            "input": "range",
+            "min": 2000,
+            "max": 2021,
+            "step": 1,
+            "name": "Year Range (up to): "
+          }
         }
+      ],
+      "transform": [
+        {
+          "filter": "state_selection == 'All States' || datum.State == state_selection"
+        },
+        {
+          "filter": "datum.Year <= year_max"
+        }
+      ],
+      "mark": {"type": "line", "point": true},
+      "encoding": {
+        "x": {
+          "field": "Year", 
+          "type": "ordinal",
+          "axis": {
+            "labelAngle": -45,
+            "titleFontSize": 12
+        }
+        },
+        "y": {
+          "field": "Total_Rainfall_mm", 
+          "type": "quantitative", 
+          "title": "Total Annual Rainfall (mm)",
+          "scale": {"domain": [0, 5500]},
+          "axis": {
+                "labelFontSize": 10,
+                "labelFontWeight": "lighter",  // ✅ works here
+                "titleFont": "Arial",
+                "titleFontSize": 12,
+                // "titleFontWeight": "bold"
+              }
+        },
+        "color": {
+          "field": "State", 
+          "type": "nominal", 
+          "legend": {"orient": "right", "title": "State"}
+        },
+        "tooltip": [
+          {"field": "State", "type": "nominal", "title": "State"},
+          {"field": "Year", "type": "ordinal", "title": "Year"},
+          {"field": "Total_Rainfall_mm", "type": "quantitative", "format": ",.0f", "title": "Total Rainfall (mm)"}
+        ]
+      }
     };
 
-
-
-
-    // Embed the Week 9 Map
-    vegaEmbed("#map-container", mapSpec, {
-      "actions": false,
-      "renderer": "svg"
-    }).catch(console.error);
-
-    // Embed the Task 1 Line Chart
-    vegaEmbed("#line-chart-container", lineChartSpec, {
-      "actions": false,
-      "renderer": "svg"
-    }).catch(console.error);
+    vegaEmbed("#map", mapSpec, {"actions": false});
+    vegaEmbed("#chart", chartSpec, {"actions": false});
   </script>
 </body>
 </html>
