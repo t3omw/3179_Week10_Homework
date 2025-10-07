@@ -1,0 +1,140 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "width": 600,
+  "height": 400,
+  "title": {
+    "text": "Annual Total Rainfall (2000-2021) in Malaysian States",
+    "fontSize": 14,
+    "fontWeight": "bold",
+    "anchor": "start"
+  },
+  "data": {
+    "url": "malaysia_rainfall_2000_2021.csv"
+  },
+  "transform": [
+    {
+      "aggregate": [{"op": "sum", "field": "Total Rainfall in millimetres", "as": "Annual Total Rainfall"}],
+      "groupby": ["State", "Year"]
+    },
+    {
+      "filter": "datum['Annual Total Rainfall'] != null"
+    }
+  ],
+  "params": [
+    {
+      "name": "selected_states_legend",
+      "select": {"type": "point", "fields": ["State"], "on": "mouseover"},
+      "bind": "legend"
+    },
+    {
+      "name": "state_selection_menu",
+      "bind": {
+        "input": "select",
+        "options": [
+          null,
+          "Johor", "Kedah", "Kelantan", "Labuan", "Melaka",
+          "Negeri Sembilan", "Pahang", "Perak", "Perlis", "Pulau Pinang",
+          "Sabah", "Sarawak", "Selangor", "Terengganu", "Kuala Lumpur", "Putrajaya"
+        ],
+        "labels": [
+          "Show All",
+          "Johor", "Kedah", "Kelantan", "Labuan", "Melaka",
+          "Negeri Sembilan", "Pahang", "Perak", "Perlis", "Pulau Pinang",
+          "Sabah", "Sarawak", "Selangor", "Terengganu", "Kuala Lumpur", "Putrajaya"
+        ],
+        "name": "Filter by State:"
+      }
+    },
+    {
+      "name": "year_slider",
+      "bind": {
+        "input": "range",
+        "min": 2000,
+        "max": 2021,
+        "step": 1,
+        "name": "Year Range:",
+        "format": ".0f"
+      },
+      "value": 2021
+    }
+  ],
+  "encoding": {
+    "x": {
+      "field": "Year",
+      "type": "ordinal",
+      "title": "Year",
+      "axis": {"format": ".0f", "labelAngle": -45},
+      "scale": {"domain": {"param": "year_slider", "field": "Year"}}
+    },
+    "y": {
+      "field": "Annual Total Rainfall",
+      "type": "quantitative",
+      "title": "Annual Total Rainfall (mm)",
+      "scale": {"type": "log", "base": 10},
+      "axis": {"format": ",.0f"}
+    },
+    "color": {
+      "field": "State",
+      "type": "nominal",
+      "legend": {
+        "title": "Malaysian State",
+        "orient": "right",
+        "offset": 10,
+        "labelLimit": 120
+      }
+    },
+    "opacity": {
+      "condition": {
+        "param": "selected_states_legend",
+        "value": 1
+      },
+      "value": 0.2
+    },
+    "tooltip": [
+      {"field": "State", "type": "nominal", "title": "State/Territory"},
+      {"field": "Year", "type": "ordinal", "title": "Year"},
+      {"field": "Annual Total Rainfall", "type": "quantitative", "title": "Annual Total Rainfall (mm)", "format": ",.0f"}
+    ]
+  },
+  "layer": [
+    {
+      "mark": {"type": "line", "point": true},
+      "transform": [
+        {"filter": "datum.State == state_selection_menu || state_selection_menu == null"},
+        {"filter": "datum.Year <= year_slider"}
+      ]
+    },
+    {
+      "mark": {
+        "type": "text",
+        "align": "left",
+        "dx": 5,
+        "dy": -5,
+        "color": "black",
+        "fontSize": 10,
+        "fontWeight": "bold"
+      },
+      "encoding": {
+        "text": {"field": "State"},
+        "x": {
+          "field": "Year",
+          "aggregate": "max",
+          "type": "ordinal"
+        },
+        "y": {
+          "field": "Annual Total Rainfall",
+          "aggregate": {"field": "Annual Total Rainfall", "op": "argmax"}
+        }
+      },
+      "transform": [
+        {"filter": "datum.State == state_selection_menu || state_selection_menu == null"},
+        {"filter": "datum.Year == year_slider"}
+      ]
+    }
+  ],
+  "config": {
+    "axis": {"grid": true},
+    "line": {"point": true},
+    "point": {"filled": true, "size": 60}
+  }
+}
