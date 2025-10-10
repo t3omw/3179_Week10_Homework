@@ -2,47 +2,122 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Malaysia Rainfall (2014–2020)</title>
+  <title>Annual Rainfall Malaysia (2014-2020)</title>
   <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+  <link rel="icon" href="data:,">
   <style>
-    body { font-family: Arial, sans-serif; margin: 10px; background: #fafafa; }
-    h1 { text-align: center; }
-    .container { display: flex; gap: 20px; align-items: flex-start; }
-    .controls { width: 220px; background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    .chart { flex: 1; background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    input[type=range]{ width:100%; }
-    select { width:100%; padding:4px; margin-top:4px; }
+    body {
+      margin: 0; /* Remove default body margin */
+      background: #fafafa;
+    }
+
+    h1 {
+      text-align: center;
+      margin-top: 20px; /* Add some margin to the top of the title */
+      margin-bottom: 20px;
+      font-size: 55px;
+    }
+
+    /* Main wrapper to align all content (controls + map, then line chart) to the left */
+    .main-content-wrapper {
+      display: flex;
+      flex-direction: column; /* Stack items vertically */
+      align-items: flex-start; /* Aligns items to the left within the wrapper */
+      width: 100%;
+      max-width: 1700px; /* Kept existing max width */
+      margin: 20px auto; /* Center the main content wrapper horizontally */
+    }
+
+    /* Container for controls and map, displayed side-by-side */
+    .controls-and-map-row {
+      display: flex;
+      gap: 25px; /* Kept existing gap */
+      align-items: flex-start; /* Aligns controls and map to the top */
+      flex-wrap: wrap; /* Allows items to wrap on smaller screens */
+      justify-content: flex-start; /* Aligns content to the start (left) */
+      width: 100%; /* Take full width of its parent (.main-content-wrapper) */
+      margin-bottom: 50px; /* Increased space below this row for gap */
+      margin-left: 100px; /* Kept existing margin */
+    }
+
+    .controls {
+      font-family: Arial, sans-serif;
+      width: 220px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      font-size: 18px;
+    }
+
+    /* Styles for the map container (still has a white background implicitly from Vega-Lite) */
+    #map {
+      width: 1050px; /* Kept existing width */
+      height: 650px; /* Kept existing height */
+      box-shadow: none; /* Remove shadow */
+      padding: 0; /* Remove padding as Vega-Lite handles its own background/border */
+      margin: 0;
+      background: #fff; /* Explicitly add white background for consistency with other charts */
+      border-radius: 8px; /* Maintain rounded corners */
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Maintain shadow */
+    }
+
+    /* Specific styles for the line chart container (without the general .chart styles) */
+    #line {
+      width: 1650px; /* Kept existing width */
+      height: 550px; /* Kept existing height */
+      margin-top: 50px; /* Increased space from map above for gap */
+      padding-left: 180px;
+    }
+
+    input[type=range] {
+      width: 100%;
+      margin-bottom: 5px;
+    }
+
+    select {
+      width: 100%;
+      padding: 6px;
+      margin-top: 4px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    hr {
+      margin: 20px 0; /* Adjusted margin for the horizontal rule */
+    }
   </style>
 </head>
 <body>
-  <h1>Malaysia Rainfall (2014–2020)</h1>
+  <h1>Annual Rainfall Malaysia (2014-2020)</h1>
 
-  <div class="container">
-    <div class="controls">
-      <label><strong>Year</strong></label><br>
-      <input id="year-slider" type="range" min="2014" max="2020" step="1" value="2014">
-      <div style="text-align:right;font-weight:bold;">
-        <span id="year-label">2014</span>
+  <div class="main-content-wrapper">
+    <div class="controls-and-map-row">
+      <div class="controls">
+        <label><strong>Year</strong></label><br>
+        <input id="year-slider" type="range" min="2014" max="2020" step="1" value="2020">
+        <div style="text-align:right;font-weight:bold;">
+          <span id="year-label">2020</span>
+        </div>
+        <hr>
+        <label><strong>State</strong></label><br>
+        <select id="state-select">
+          <option>All States</option>
+          <option>Johor</option><option>Kedah</option><option>Kelantan</option>
+          <option>Kuala Lumpur</option><option>Labuan</option><option>Melaka</option>
+          <option>Negeri Sembilan</option><option>Pahang</option><option>Perak</option>
+          <option>Perlis</option><option>Pulau Pinang</option><option>Putrajaya</option>
+          <option>Sabah</option><option>Sarawak</option><option>Selangor</option>
+          <option>Terengganu</option>
+        </select>
       </div>
-      <hr>
-      <label><strong>State</strong></label><br>
-      <select id="state-select">
-        <option>All States</option>
-        <option>Johor</option><option>Kedah</option><option>Kelantan</option>
-        <option>Kuala Lumpur</option><option>Labuan</option><option>Melaka</option>
-        <option>Negeri Sembilan</option><option>Pahang</option><option>Perak</option>
-        <option>Perlis</option><option>Pulau Pinang</option><option>Putrajaya</option>
-        <option>Sabah</option><option>Sarawak</option><option>Selangor</option>
-        <option>Terengganu</option>
-      </select>
+
+      <div id="map"></div>
     </div>
 
-    <div class="chart" id="map"></div>
+    <div id="line"></div>
   </div>
-
-  <div class="chart" id="line"></div>
 
 <script>
 function parseCSV(text) {
@@ -92,65 +167,186 @@ async function render() {
   document.getElementById('year-label').textContent = year;
 
   const mapValues = getMapValues(year);
+  const lineValues = getLineValues(year, state);
 
   // === MAP SPEC ===
   const mapSpec = {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-    "width": 750,
-    "height": 600,
-    "projection": {"type":"mercator", "center":[109.5,4], "scale":2200},
+    "background": "white",
+    "width": 1050,
+    "height": 650,
+    // Combined title and subtitle for the map
+    "title": {
+      "text": "Average Annual Rainfall Density (mm/km²) in Malaysia",
+      "subtitle": [
+        "Rainfall measured in millimeters per square kilometer (mm/km²), averaged across 2014–2020 period.",
+        "Data normalized by state area using logarithmic scaling. Source: Public Sector Open Data Portal (DTSA)."
+      ],
+      "fontSize": 34,
+      "subtitleFontSize": 14,
+      "subtitleFont": "Arial",
+      "subtitleFontWeight": "normal",
+      "anchor": "start",
+      "offset": 10
+    },
+    "padding": 5,
+    "projection": {
+      "type": "conicConformal",
+      "center": [109.5, 4],
+      "parallels": [1, 7],
+      "scale": 3000,
+      "translate": [525, 325]
+    },
     "layer": [
       {
-        "data": {"url":"malaysia_state.json","format":{"type":"topojson","feature":"malaysia_state"}},
-        "mark":{"type":"geoshape","fill":"#f2f2f2","stroke":"#ccc"}
+        // Ocean/water background
+        // "data": {"graticule": {"step": [20, 20]}},
+        "data": {"sphere": true},
+        "mark": {
+          "type": "geoshape",
+          "fill": "#f8f8f8",
+          "stroke": "#e0e0e0",
+          "strokeWidth": 0.5
+        }
       },
       {
-        "data": {"url":"malaysia_state.json","format":{"type":"topojson","feature":"malaysia_state"}},
+        // Graticule lines (longitude/latitude grid)
+        "data": {"graticule": true},
+        "mark": {
+          "type": "geoshape",
+          "fill": null,
+          "stroke": "#d4ccc0",
+          "strokeWidth": 0.8,
+          "strokeDash": [2, 2]
+        }
+      },
+      {
+        // Your existing map layer for Malaysian states
+        "data": {
+          "url": "malaysia_state.json",
+          "format": {"type": "topojson", "feature": "malaysia_state"}
+        },
         "transform":[
           {
             "lookup": "properties.NAME_1",
             "from": {"data":{"values": mapValues},"key":"State","fields":["rainfall"]}
-          }
+          },
+          {"calculate": "isValid(datum.rainfall) ? datum.rainfall : null", "as": "rainfall_data"}
         ],
         "mark":{"type":"geoshape","stroke":"white"},
         "encoding":{
           "color":{
-            "field":"rainfall",
+            "field":"rainfall_data",
             "type":"quantitative",
             "scale":{"type":"log","scheme":"blues"},
-            "title":"Yearly Rainfall (mm/km²)"
+            "title":"Density (mm/km²)",
+            "legend": {
+              "orient": "bottom-right",
+              "offset": 10,
+              "titleLimit": 150,
+              "labelLimit": 100,
+              "format": ".1f",
+              "titleFontSize": 14,
+              "labelFontSize": 12
+            }
+          },
+          "stroke": {
+            "condition": {
+              "test": state === 'All States' ? "false" : `datum.properties.NAME_1 === '${state}'`,
+              "value": "black"
+            },
+            "value": "white"
+          },
+          "strokeWidth": {
+            "condition": {
+              "test": state === 'All States' ? "false" : `datum.properties.NAME_1 === '${state}'`,
+              "value": 2
+            },
+            "value": 0.5
+          },
+          "opacity":{
+            "condition":{
+              "test": state === 'All States' ? "true" : `datum.properties.NAME_1 === '${state}'`,
+              "value":1
+            },
+            "value":0.4
           },
           "tooltip":[
             {"field":"properties.NAME_1","title":"State"},
-            {"field":"rainfall","format":".3f","title":"Rainfall (mm/km²)"}
+            {"field":"rainfall_data","title":"Density (mm/km²)","format":".2f"}
           ]
         }
       }
-    ]
-  };
-
-  // === LINE CHART SPEC ===
-  const lineValues = getLineValues(year, state);
-  const lineSpec = {
-    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-    "width": 900,
-    "height": 350,
-    "data": {"values": lineValues},
-    "mark":{"type":"line","point":true,"interpolate":"monotone"},
-    "encoding":{
-      "x":{"field":"Year","type":"ordinal","title":"Year"},
-      "y":{"field":"Rainfall","type":"quantitative","title":"Yearly Rainfall (mm)"},
-      "color":{"field":"State","type":"nominal","legend":{"title":"State"}},
-      "opacity":{
-        "condition":{"test": state === 'All States' ? "true" : `datum.State === '${state}'`, "value":1},
-        "value": state === 'All States' ? 0.4 : 0.1
-      },
-      "tooltip":[{"field":"State"},{"field":"Year"},{"field":"Rainfall","format":".1f"}]
+    ],
+    "config": {
+      "legend": {
+        "titleLimit": 150,
+        "labelLimit": 100
+      }
     }
   };
 
-  await vegaEmbed('#map', mapSpec, {actions:false});
-  await vegaEmbed('#line', lineSpec, {actions:false});
+  // === LINE CHART SPEC ===
+  const lineSpec = {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "title": {
+      "text": "Average Annual Rainfall (mm) in Malaysia by State (2014-2020)",
+      "fontSize": 24
+    },
+    "width": 950, /* Kept existing width */
+    "height": 550,
+    "padding": {"left": 30, "right": 30, "top": 5, "bottom": 5},
+    "data": {"values": lineValues},
+    "mark":{"type":"line","point":true,"interpolate":"monotone"},
+    "encoding":{
+      "x":{
+        "field":"Year",
+        "type":"ordinal",
+        "axis": {
+          "title":"Year",
+          "titleFontSize": 18,
+          "labelFontSize": 16
+        }
+      },
+      "y":{
+        "field":"Rainfall",
+        "type":"quantitative",
+        "axis": {
+          "title":"Yearly Rainfall(mm)",
+          "titleFontSize": 18,
+          "labelFontSize": 16
+        }
+      },
+      "color":{
+        "field":"State","type":"nominal",
+        "legend":{
+          "title":"State",
+          "orient":"right",
+          "offset": 10,
+          "titleFontSize": 16,
+          "labelFontSize": 14,
+          "labelLimit": 200
+        }
+      },
+      "opacity":{
+        "condition":{"test": state === 'All States' ? "true" : `datum.State === '${state}'`, "value":1},
+        "value":0.2
+      },
+      "tooltip":[
+        {"field":"State"},
+        {"field":"Year"},
+        {"field":"Rainfall", "title":"Rainfall (mm)", "format": ".2f"}
+      ]
+    },
+    "config": {
+      "legend": {
+        "titleLimit": 150,
+      }
+    }
+  };
+
+  await vegaEmbed('#map', mapSpec, {actions:false, renderer: 'svg'});
+  await vegaEmbed('#line', lineSpec, {actions:false, renderer: 'svg'});
 }
 
 (async function(){
