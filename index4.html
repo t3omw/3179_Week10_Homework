@@ -6,43 +6,136 @@
   <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+  <link rel="icon" href="data:,">
   <style>
-    body { font-family: Arial, sans-serif; margin: 10px; background: #fafafa; }
-    h1 { text-align: center; }
-    .container { display: flex; gap: 20px; align-items: flex-start; }
-    .controls { width: 220px; background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    .chart { flex: 1; background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    input[type=range]{ width:100%; }
-    select { width:100%; padding:4px; margin-top:4px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #fafafa;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin: 0 auto;
+    max-width: 1500px;
+    }
+
+    .controls {
+      width: 220px;
+      background: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      flex-shrink: 0;
+    }
+
+    /* --- Overall layout --- */
+    .main-content-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 1300px;
+      margin: 0 auto;
+      gap: 25px;
+      padding-bottom: 30px;
+    }
+
+    /* --- Controls on the left, map centered --- */
+    .controls-and-map-row {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: center;
+      width: 100%;
+      gap: 25px;
+      flex-wrap: wrap;
+    }
+
+    .controls {
+      width: 220px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .chart {
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    /* --- Map container --- */
+    #map {
+      width: 950px;
+      height: 600px;
+    }
+
+    /* --- Line chart container --- */
+    #line {
+      width: 950px;
+      height: 400px;
+    }
+
+    input[type=range] {
+      width: 100%;
+      margin-bottom: 5px;
+    }
+
+    select {
+      width: 100%;
+      padding: 6px;
+      margin-top: 4px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    hr {
+      margin: 15px 0;
+    }
   </style>
 </head>
 <body>
   <h1>Malaysia Rainfall (2014–2020)</h1>
 
-  <div class="container">
-    <div class="controls">
-      <label><strong>Year</strong></label><br>
-      <input id="year-slider" type="range" min="2014" max="2020" step="1" value="2014">
-      <div style="text-align:right;font-weight:bold;">
-        <span id="year-label">2014</span>
+  <div class="main-content-wrapper">
+    <div class="controls-and-map-row">
+      <!-- Left-side controls -->
+      <div class="controls">
+        <label><strong>Year</strong></label><br>
+        <input id="year-slider" type="range" min="2014" max="2020" step="1" value="2020">
+        <div style="text-align:right;font-weight:bold;">
+          <span id="year-label">2020</span>
+        </div>
+        <hr>
+        <label><strong>State</strong></label><br>
+        <select id="state-select">
+          <option>All States</option>
+          <option>Johor</option><option>Kedah</option><option>Kelantan</option>
+          <option>Kuala Lumpur</option><option>Labuan</option><option>Melaka</option>
+          <option>Negeri Sembilan</option><option>Pahang</option><option>Perak</option>
+          <option>Perlis</option><option>Pulau Pinang</option><option>Putrajaya</option>
+          <option>Sabah</option><option>Sarawak</option><option>Selangor</option>
+          <option>Terengganu</option>
+        </select>
       </div>
-      <hr>
-      <label><strong>State</strong></label><br>
-      <select id="state-select">
-        <option>All States</option>
-        <option>Johor</option><option>Kedah</option><option>Kelantan</option>
-        <option>Kuala Lumpur</option><option>Labuan</option><option>Melaka</option>
-        <option>Negeri Sembilan</option><option>Pahang</option><option>Perak</option>
-        <option>Perlis</option><option>Pulau Pinang</option><option>Putrajaya</option>
-        <option>Sabah</option><option>Sarawak</option><option>Selangor</option>
-        <option>Terengganu</option>
-      </select>
+
+      <!-- Map visualization -->
+      <div class="chart" id="map"></div>
     </div>
 
-    <div class="chart" id="map"></div>
+    <!-- Line chart visualization -->
+    <div class="chart" id="line"></div>
   </div>
-
-  <div class="chart" id="line"></div>
 
 <script>
 function parseCSV(text) {
@@ -92,37 +185,79 @@ async function render() {
   document.getElementById('year-label').textContent = year;
 
   const mapValues = getMapValues(year);
+  const lineValues = getLineValues(year, state);
 
   // === MAP SPEC ===
   const mapSpec = {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-    "width": 750,
+    "background": "transparent",
+    "width": 950,
     "height": 600,
-    "projection": {"type":"mercator", "center":[109.5,4], "scale":2200},
+    "projection": {
+      "type": "conicConformal",
+      "center": [109.5, 4],
+      "parallels": [1, 7],
+      "scale": 2800,
+      "translate": [470, 320]
+    },
     "layer": [
       {
-        "data": {"url":"malaysia_state.json","format":{"type":"topojson","feature":"malaysia_state"}},
-        "mark":{"type":"geoshape","fill":"#f2f2f2","stroke":"#ccc"}
+        "data": {"graticule": {"step": [10, 10]}},
+        "mark": {"type": "geoshape", "fill": "#f8f8f8", "stroke": "#e0e0e0", "strokeWidth": 0.5}
       },
       {
-        "data": {"url":"malaysia_state.json","format":{"type":"topojson","feature":"malaysia_state"}},
-        "transform":[
+        "data": {"graticule": true},
+        "mark": {"type": "geoshape", "fill": null, "stroke": "#d4ccc0", "strokeWidth": 0.8, "strokeDash": [2, 2]}
+      },
+      {
+        "data": {"url": "malaysia_state.json", "format": {"type": "topojson", "feature": "malaysia_state"}},
+        "transform": [
           {
             "lookup": "properties.NAME_1",
-            "from": {"data":{"values": mapValues},"key":"State","fields":["rainfall"]}
-          }
-        ],
-        "mark":{"type":"geoshape","stroke":"white"},
-        "encoding":{
-          "color":{
-            "field":"rainfall",
-            "type":"quantitative",
-            "scale":{"type":"log","scheme":"blues"},
-            "title":"Yearly Rainfall (mm/km²)"
+            "from": {"data": {"values": mapValues}, "key": "State", "fields": ["rainfall"]}
           },
-          "tooltip":[
-            {"field":"properties.NAME_1","title":"State"},
-            {"field":"rainfall","format":".3f","title":"Rainfall (mm/km²)"}
+          {"calculate": "isValid(datum.rainfall) ? datum.rainfall : null", "as": "rainfall_data"}
+        ],
+        "mark": {"type": "geoshape", "stroke": "white"},
+        "encoding": {
+          "color": {
+            "field": "rainfall_data",
+            "type": "quantitative",
+            "scale": {"type": "log", "scheme": "blues"},
+            "title": "Yearly Rainfall (mm/km²)",
+            "legend": {
+              "orient": "bottom-right",
+              "direction": "horizontal",
+              "offset": 10,
+              "titleLimit": 150,
+              "labelLimit": 100,
+              "labelExpr": "format(datum.label, '.2~s')"
+            }
+          },
+          "stroke": {
+            "condition": {
+              "test": state === 'All States' ? "false" : `datum.properties.NAME_1 === '${state}'`,
+              "value": "black"
+            },
+            "value": "white"
+          },
+          "strokeWidth": {
+            "condition": {
+              "test": state === 'All States' ? "false" : `datum.properties.NAME_1 === '${state}'`,
+              "value": 2
+            },
+            "value": 0.5
+          },
+          "opacity": {
+            "condition": {
+              "test": state === 'All States' ? "true" : `datum.properties.NAME_1 === '${state}'`,
+              "value": 1
+            },
+            "value": 0.4
+          },
+          "tooltip": [
+            {"field": "properties.NAME_1", "title": "State"},
+            {"field": "rainfall_data", "title": "Rainfall (mm/km²)", "format": ".2f"}
           ]
         }
       }
@@ -130,27 +265,34 @@ async function render() {
   };
 
   // === LINE CHART SPEC ===
-  const lineValues = getLineValues(year, state);
   const lineSpec = {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-    "width": 900,
-    "height": 350,
+    "width": 950,
+    "height": 400,
     "data": {"values": lineValues},
-    "mark":{"type":"line","point":true,"interpolate":"monotone"},
-    "encoding":{
-      "x":{"field":"Year","type":"ordinal","title":"Year"},
-      "y":{"field":"Rainfall","type":"quantitative","title":"Yearly Rainfall (mm)"},
-      "color":{"field":"State","type":"nominal","legend":{"title":"State"}},
-      "opacity":{
-        "condition":{"test": state === 'All States' ? "true" : `datum.State === '${state}'`, "value":1},
-        "value": state === 'All States' ? 0.4 : 0.1
+    "mark": {"type": "line", "point": true, "interpolate": "monotone"},
+    "encoding": {
+      "x": {"field": "Year", "type": "ordinal", "title": "Year"},
+      "y": {"field": "Rainfall", "type": "quantitative", "title": "Yearly Rainfall (mm)"},
+      "color": {
+        "field": "State",
+        "type": "nominal",
+        "legend": {"title": "State", "orient": "right", "offset": 10}
       },
-      "tooltip":[{"field":"State"},{"field":"Year"},{"field":"Rainfall","format":".1f"}]
+      "opacity": {
+        "condition": {"test": state === 'All States' ? "true" : `datum.State === '${state}'`, "value": 1},
+        "value": 0.2
+      },
+      "tooltip": [
+        {"field": "State"},
+        {"field": "Year"},
+        {"field": "Rainfall", "format": ".2f"}
+      ]
     }
   };
 
-  await vegaEmbed('#map', mapSpec, {actions:false});
-  await vegaEmbed('#line', lineSpec, {actions:false});
+  await vegaEmbed('#map', mapSpec, {actions:false, renderer:'svg'});
+  await vegaEmbed('#line', lineSpec, {actions:false, renderer:'svg'});
 }
 
 (async function(){
